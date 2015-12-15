@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <script src="lib/jquery-1.11.3.min.js"></script>
+    <script src="lib/jquery.ajaxfileupload.chen.js"></script>
+    <style type="'text/css'">
+        .upload_img_size,.upload_img_status{
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<input id="uploadFiles" type="file" multiple/>
+<div id="uploadPreview"></div>
+</body>
+<script>
+
+    var imgSizeList = [{width: 800, height: 454}, {width: 960, height: 640}, {width: 1136, height: 640}, {
+        width: 1280, height: 720
+    },
+        {width: 1334, height: 750}, {width: 1472, height: 828}, {width: 1920, height: 1080}, {
+            width: 2001,
+            height: 1125
+        },
+        {width: 2208, height: 1242}];
+
+    $("#uploadFiles").ajaxfileupload_chen({
+        'action': '../upload.php',
+        'onComplete': function (response) {
+            if (response == "" || response == undefined) {
+                return;
+            }
+            if (typeof response == "string") {
+                response = JSON.parse(response);
+            }
+
+            switch (response.code) {
+                case 0:
+                    var imgUrl = response.data;
+                    var img_s = new Image();
+                    img_s.src = imgUrl;
+                    img_s.onload = function () {
+                        //if (this.width != 750 || this.height != 340) {
+                        //    openNoticeBox("警告", "图片尺寸应为:750*340", {cansle: {text: "知道了"}});
+                        //} else {
+                        //    $("#banner_upload_l_hide").val(imgUrl);
+                        //    $("#banner_img_l").attr("src", imgUrl);
+                        //}
+                    }
+                    break;
+                case 1:
+                    openNoticeBox("警告", "上传失败,没有图片数据", {cansle: {text: "知道了"}});
+                    break;
+                case 5:
+                    $("#banner_upload_l").val("");
+                    openNoticeBox("警告", "上传失败,图片大小不在规定范围内", {cansle: {text: "知道了"}});
+                    break;
+                default :
+                    $("#banner_upload_l").val("");
+                    openNoticeBox("警告", "上传失败,服务器端接受失败:"+response.msg, {cansle: {text: "知道了"}});
+                    break;
+            }
+            $("#uploadPic").val("");
+        },
+        'onStart': function () {
+            var needupload_img = $("#uploadFiles").val();
+            if (needupload_img == "") {
+                return true;
+            }
+            var img_ext = needupload_img.substr(needupload_img.indexOf(".") + 1);
+
+            if (img_ext != "png" && img_ext != "jpg" && img_ext != "jpeg") {
+                openNoticeBox("警告", "不支持的图片类型", {cansle: {text: "知道了"}});
+                return false;
+            }
+        },
+        'onSuccess':function(response,img){
+            if(typeof response == "string"){
+                response = JSON.parse(response);
+            }
+            $(".upload_img_"+img.width+"_"+img.height).find(".upload_img_status").css("color","#555").html("已上传");
+            $(".upload_img_"+img.width+"_"+img.height).find(".upload_img_hidden").val(response.data);
+            $(".upload_img_"+img.width+"_"+img.height).find(".upload_img_hidden").attr("data-isUploaded",1);
+        },
+        'onCancel': function () {
+            console.log('no file selected');
+        },
+        'onCheckSuccess': function (isOkImgList) {
+            $("#uploadPreview").html("");
+            if (isOkImgList) {
+                for (var i = 0;i < isOkImgList.length;i++) {
+                    $("#uploadPreview").append(ImgView(isOkImgList[i]));
+                }
+            }
+        }
+    })
+
+function ImgView(img_item){
+         var img = img_item.img;
+        var uploadStatus = "未上传";
+        var color_status = "red";
+        if(img_item.status == 1){
+            uploadStatus = "已上传";
+            color_status = "#555";
+        }
+        var html = "<li class='upload_img_item upload_img_"+img.width+"_"+img.height+"'>" +
+            "<p class='upload_img_size'>"+img.width+"*"+img.height+"</p>" +
+            "<img src='"+img.src+"' class='upload_img_preiview'>" +
+            "<p class='upload_img_status' style='color:"+color_status+"'>"+uploadStatus+"</p>"+
+            "<input type='hidden' class='upload_img_hidden' name='upload_img' data-isUploaded='"+img_item.status+"' value='"+img_item.img_src+"' data-width='"+img.width+"' data-height='"+img.height+"'></li>";
+
+        return html;
+}
+
+</script>
+</html>
