@@ -38,6 +38,13 @@
         //格式{file:file,status:0}//status:0未上传,1:已经上传
         var fileReadyUpload = null;
 
+        //检查时候错误文件
+        var err_files_num = 0;
+        //检查时候正确文件
+        var success_files = 0;
+        //检查文件时候重复文件
+        var replace_file_num = 0
+
         //保存上下文对象
         var _context = this;
 
@@ -59,8 +66,11 @@
             if ($element.data('data-setup') === true) return;
 
             $element.change(function () {
-                // since a new image was selected, reset the marker
+                // 重置变量
                 uploading_file = false;
+                success_files = 0;
+                err_files_num = 0;
+                replace_file_num = 0;
 
                 if ($(this).val() == "") {
                     return;
@@ -68,7 +78,7 @@
 
                 //检查文件格式
                 var ext = $(this).val().split('.').pop().toLowerCase();
-                if (true === settings.validate_extensions && $.inArray(ext, settings.valid_extensions) == -1) {
+                if (true === settings.validate_extensions && $.inArray(ext, settings.valid_extensions) == -1){
                     settings.onComplete.apply($element, [{
                         code: 9,
                         msg: '选中的文件格式应该是:' + settings.valid_extensions.join(', ') + '.'
@@ -125,10 +135,10 @@
              */
             var upload_file = function () {
                 //当没有选择的文件上来的时候,也不应该返回,应该要把之前选择过得文件上传
-                if ($element.val() == '') {
-                    if (fileReadyUpload == null || fileReadyUpload.length == 0) {
+                 if ($element.val() == '') {
+                    if(fileReadyUpload == null || fileReadyUpload.length == 0){
                         return settings.onCancel.apply($element, [settings.params])
-                    } else {
+                    }else{
                         uploading_file = true;
                         //开始之前调用用户自己定义的OnStart方法
                         var ret = settings.onStart.apply($element, [settings.params]);
@@ -139,29 +149,30 @@
                             uploadImgs();
                         }
                     }
-                } else {
-                    //选择到了文件
-                    // 校验格式后缀名
-                    var ext = $element.val().split('.').pop().toLowerCase();
-                    if (true === settings.validate_extensions && $.inArray(ext, settings.valid_extensions) == -1) {
-                        //回传给用户
-                        settings.onComplete.apply($element, [{
-                            code: 9,
-                            msg: '选中的文件格式应该是:' + settings.valid_extensions.join(', ') + '.'
-                        }, settings.params]);
-                    } else {
+                 }else{
+                     //选择到了文件
+                     // 校验格式后缀名
+                     var ext = $element.val().split('.').pop().toLowerCase();
+                     if (true === settings.validate_extensions && $.inArray(ext, settings.valid_extensions) == -1) {
+                         //回传给用户
+                         settings.onComplete.apply($element, [{
+                             code: 9,
+                             msg: '选中的文件格式应该是:' + settings.valid_extensions.join(', ') + '.'
+                         }, settings.params]);
+                     }else{
 
-                        uploading_file = true;
-                        //开始之前调用用户自己定义的OnStart方法
-                        var ret = settings.onStart.apply($element, [settings.params]);
+                         uploading_file = true;
+                         //开始之前调用用户自己定义的OnStart方法
+                         var ret = settings.onStart.apply($element, [settings.params]);
 
-                        //如果Start方法没有校验通过,则不处理开始上传方法
-                        if (ret !== false) {
-                            //调用上传
-                            uploadImgs();
-                        }
-                    }
-                }
+                         //如果Start方法没有校验通过,则不处理开始上传方法
+                         if (ret !== false) {
+                             //调用上传
+                             uploadImgs();
+                         }
+                     }
+                 }
+
 
 
             };
@@ -188,7 +199,7 @@
                                 xhr.onreadystatechange = function (e) {
                                     if (xhr.readyState == 4) {
                                         if (xhr.status == 200) {
-                                            uploadSuccess($element, file, img_rel.img, xhr.responseText);
+                                            uploadSuccess($element,file,img_rel.img, xhr.responseText);
                                             if (!fileReadyUpload.length) {
                                                 //调用自己的完成方法
                                                 uploadComplete($element, xhr.responseText);
@@ -215,13 +226,13 @@
              * 上传成功
              * 单个文件上传成功
              */
-            var uploadSuccess = function (element, file, img, response) {
+            var uploadSuccess = function (element,file,img,response) {
 
                 if (typeof response == "string") {
                     response = JSON.parse(response);
                 }
 
-                setIsUploadStatus(file, response);
+                setIsUploadStatus(file,response);
 
                 //调用sccuess方法可能需要对当个文件处理
                 settings.onSuccess.apply(element, [response, img, settings.params]);
@@ -231,10 +242,10 @@
              * 设置已经上传的状态
              * @param file
              */
-            var setIsUploadStatus = function (file, response) {
+            var setIsUploadStatus = function(file,response){
                 //需要把文件上传状态修改为已经上传
-                for (var i = 0; i < fileReadyUpload.length; i++) {
-                    if (fileReadyUpload[i].file == file) {
+                for(var i = 0 ; i < fileReadyUpload.length; i++){
+                    if(fileReadyUpload[i].file == file){
                         fileReadyUpload[i].status = 1;
                         isOkImgList[i].status = 1;
                         isOkImgList[i].img_src = response.data;
@@ -271,19 +282,15 @@
                 }
                 //检查是否再允许上传的列表中
                 var isOk = false;
-                if (settings.imgSizeList) {
-                    for (var i in settings.imgSizeList) {
-                        var item = settings.imgSizeList[i];
-                        if (img.width == item.width && img.height == item.height) {
-                            isOk = true;
-                        }
+                for (var i in settings.imgSizeList) {
+                    var item = settings.imgSizeList[i];
+                    if (img.width == item.width && img.height == item.height) {
+                        isOk = true;
                     }
-                } else {
-                    isOk = true;
                 }
-
                 //在允许上传的尺寸列表中
                 if (isOk) {
+                    //往成功文件里面添加1
                     //判断已经成功的列表中是否存在该尺寸
                     if (isOkImgList != null && isOkImgList.length > 0) {
                         var isExist = false;
@@ -292,44 +299,48 @@
                             var _item = isOkImgList[j].img;
                             if (img.width == _item.width && img.height == _item.height) {
                                 //如果存在则保存当前上传的
-                                var img_item = {img: img, status: 0};
+                                var img_item = {img:img,status:0};
                                 isOkImgList.splice(j, 1, img_item);
                                 var file_item = {file: file, status: 0};
                                 fileReadyUpload.splice(j, 1, file_item);
+                                replace_file_num++;
                                 isExist = true;
                             }
                         }
                         //如果不存在,则放入
                         if (!isExist) {
-                            var img_item = {img: img, status: 0};
+                            success_files++;
+                            var img_item = {img:img,status:0};
                             isOkImgList.push(img_item);
                             var file_item = {file: file, status: 0};
                             fileReadyUpload.push(file_item);
                         }
                     } else {
+                        success_files++;
                         //没有成功的图片列表
                         isOkImgList = [];
                         fileReadyUpload = [];
                         //拼装上传文件列表
-                        var file_item = {file: file, status: 0};
+                        var file_item = {file: file,status: 0};
                         fileReadyUpload.push(file_item);
-                        var img_item = {img: img, status: 0};
+                        var img_item = {img:img,status:0};
                         isOkImgList.push(img_item);
                     }
                 } else {
+                    err_files_num++;
                     console.log("上传的图片尺寸不符合");
                 }
             }
 
             //重新添加图片标签
             var reSetUploadImgs = function (element) {
+
+                //回调用户的方法设置界面
+                settings.onCheckSuccess.apply(element, [isOkImgList,{success:success_files,error:err_files_num,replace:replace_file_num}]);
+
                 if (isOkImgList == null || isOkImgList.length <= 0) {
                     return;
                 }
-
-                //回调用户的方法设置界面
-                settings.onCheckSuccess.apply(element, [isOkImgList]);
-
                 //检查成功,调用上传文件
 
                 //当没有上传文件的按钮
